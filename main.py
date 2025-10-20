@@ -23,8 +23,14 @@ from tools import (
     get_task_description
 )
 
-# Initialize the AgentBeats agent
-ab_agent = ab.BeatsAgent(__name__)
+# Initialize the AgentBeats agent with required parameters
+ab_agent = ab.BeatsAgent(
+    name="TheAgentCompanyGreenEvaluator",
+    agent_host="0.0.0.0",
+    agent_port=9041,
+    model_type="anthropic",
+    model_name="claude-3-5-sonnet-20241022"
+)
 
 class TheAgentCompanyGreenEvaluator:
     """

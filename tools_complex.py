@@ -1,8 +1,8 @@
-# -*- coding feature: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
-TheAgentCompany Green Agent Tools - Simplified Version
+TheAgentCompany Green Agent Tools for License Change Task Evaluation
 
-This module provides simplified tools for the green agent to evaluate white agents
+This module provides tools for the green agent to evaluate white agents
 on the "sde-change-license-easy" task from TheAgentCompany.
 """
 
@@ -13,6 +13,7 @@ import agentbeats as ab
 from typing import Dict, Any, List
 import requests
 import time
+import os
 from anthropic import Anthropic
 
 # Task configuration
@@ -51,12 +52,32 @@ def setup_license_change_task(battle_id: str) -> str:
         str: Setup status message
     """
     try:
-        print(f"[LOG] Setting up license change task environment for battle {battle_id}")
+        # Log the task setup
+        try:
+            battle_context = ab.get_battle_context()
+            ab.record_battle_event(
+                context=battle_context,
+                message="Setting up license change task environment",
+                detail={
+                    "task_name": LICENSE_CHANGE_TASK["name"],
+                    "repository_url": LICENSE_CHANGE_TASK["repository_url"],
+                    "total_checkpoints": len(LICENSE_CHANGE_TASK["checkpoints"])
+                }
+            )
+        except:
+            # Fallback if battle context is not available
+            print(f"[LOG] Setting up license change task environment for battle {battle_id}")
+        
         return f"License change task environment initialized for battle {battle_id}. Task: {LICENSE_CHANGE_TASK['description']}"
         
     except Exception as e:
         error_msg = f"Failed to setup license change task: {str(e)}"
-        print(f"[ERROR] {error_msg}")
+        ab.record_battle_event(
+            battle_id=battle_id,
+            event_type="error",
+            message=error_msg,
+            detail={"error": str(e)}
+        )
         return error_msg
 
 @ab.tool
@@ -72,9 +93,13 @@ def talk_to_agent(query: str, target_url: str) -> str:
         str: The agent's response
     """
     try:
-        # For now, return a mock response
-        print(f"[LOG] Sending message to agent at {target_url}: {query[:100]}...")
-        return f"Mock response from agent at {target_url}: Task received and processing..."
+        # Use AgentBeats A2A communication
+        response = ab.send_message_to_agent(
+            target_url=target_url,
+            message=query
+        )
+        
+        return response
         
     except Exception as e:
         return f"Failed to communicate with agent at {target_url}: {str(e)}"
@@ -92,6 +117,8 @@ def monitor_checkpoint_progress(agent_output: str, checkpoint_number: int) -> st
         str: Progress assessment
     """
     try:
+        battle_id = ab.get_battle_id()
+        
         # Define checkpoint success criteria
         checkpoint_criteria = {
             1: ["janusgraph", "license", "apache", "cc-by"],
@@ -110,7 +137,18 @@ def monitor_checkpoint_progress(agent_output: str, checkpoint_number: int) -> st
         # Determine if checkpoint is passed
         checkpoint_passed = len(success_indicators) >= len(criteria) // 2
         
-        print(f"[LOG] Checkpoint {checkpoint_number}: {'PASSED' if checkpoint_passed else 'FAILED'}")
+        # Log progress
+        ab.record_battle_event(
+            battle_id=battle_id,
+            event_type="checkpoint_progress",
+            message=f"Checkpoint {checkpoint_number} progress evaluation",
+            detail={
+                "checkpoint_number": checkpoint_number,
+                "checkpoint_passed": checkpoint_passed,
+                "success_indicators_found": success_indicators,
+                "total_criteria": len(criteria)
+            }
+        )
         
         status = "PASSED" if checkpoint_passed else "FAILED"
         return f"Checkpoint {checkpoint_number}: {status}. Found indicators: {success_indicators}"
@@ -131,6 +169,8 @@ def evaluate_license_change(agent_output: str, repository_path: str = "/workspac
         str: Evaluation results
     """
     try:
+        battle_id = ab.get_battle_id()
+        
         # Check if repository exists and has been modified
         evaluation_results = {
             "repository_exists": False,
@@ -182,13 +222,24 @@ def evaluate_license_change(agent_output: str, repository_path: str = "/workspac
         if evaluation_results["cc_by_license_removed"]:
             evaluation_results["total_score"] += 1
         
-        print(f"[LOG] License change evaluation: Score {evaluation_results['total_score']}/4")
+        # Log evaluation results
+        ab.record_battle_event(
+            battle_id=battle_id,
+            event_type="evaluation_completed",
+            message="License change evaluation completed",
+            detail=evaluation_results
+        )
         
         return f"License change evaluation: Score {evaluation_results['total_score']}/4. Repository exists: {evaluation_results['repository_exists']}, License file found: {evaluation_results['license_file_found']}, Apache license present: {evaluation_results['apache_license_present']}, CC-BY license removed: {evaluation_results['cc_by_license_removed']}"
         
     except Exception as e:
         error_msg = f"Failed to evaluate license change: {str(e)}"
-        print(f"[ERROR] {error_msg}")
+        ab.record_battle_event(
+            battle_id=battle_id,
+            event_type="error",
+            message=error_msg,
+            detail={"error": str(e)}
+        )
         return error_msg
 
 @ab.tool
@@ -206,9 +257,14 @@ def update_battle_process(battle_id: str, message: str, reported_by: str, detail
         str: Logging confirmation
     """
     try:
-        print(f"[LOG] {reported_by}: {message}")
-        if detail:
-            print(f"[LOG] Detail: {detail}")
+        # Use AgentBeats logging functionality
+        ab.record_battle_event(
+            battle_id=battle_id,
+            event_type="battle_process",
+            message=message,
+            detail=detail or {}
+        )
+        
         return f"Battle process updated: {message}"
         
     except Exception as e:
@@ -228,9 +284,13 @@ def report_on_battle_end(battle_id: str, winner: str, detail: dict = None) -> st
         str: Reporting confirmation
     """
     try:
-        print(f"[LOG] Battle {battle_id} ended. Winner: {winner}")
-        if detail:
-            print(f"[LOG] Battle details: {detail}")
+        # Use AgentBeats reporting functionality
+        ab.record_battle_result(
+            battle_id=battle_id,
+            winner=winner,
+            detail=detail or {}
+        )
+        
         return f"Battle end reported: Winner is {winner}"
         
     except Exception as e:

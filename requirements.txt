@@ -22,6 +22,9 @@ fastmcp>=0.1.0
 openai>=1.0.0
 openai-agents>=0.1.0
 
+# Anthropic integration
+anthropic>=0.40.0
+
 # Database and storage
 sqlalchemy>=2.0.0
 supabase>=2.0.0
