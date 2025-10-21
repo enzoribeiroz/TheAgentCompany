@@ -1,0 +1,23 @@
+# AgentBeats Integration Dependencies
+
+# Core AgentBeats package (provides CLI and SDK)
+agentbeats>=0.1.0
+
+# HTTP client and server for direct backend communication
+httpx>=0.25.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Standard library (included in Python 3.12+)
+# - pathlib
+# - json
+# - gzip
+# - logging
+# - asyncio
+# - dataclasses
+# - typing
+
+# Optional: for standalone log parsing
+# pandas>=2.0.0  # For CSV export
+# matplotlib>=3.7.0  # For visualization
+# tabulate>=0.9.0  # For pretty tables

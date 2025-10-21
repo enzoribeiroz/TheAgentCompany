@@ -1,0 +1,9 @@
+[agent]
+# Entry point for the agent's code
+entry_point = "green_agent.main:agent"
+
+[model]
+# Model configuration for the green agent's internal logic
+# (Note: This agent doesn't need a model since it just aggregates results)
+model_type = "openai"
+model_name = "gpt-4-turbo"  # Used only if agent needs to generate reports

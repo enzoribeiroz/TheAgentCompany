@@ -1,0 +1,28 @@
+{
+    "checkpoints": [
+        {
+            "total": 1,
+            "result": 1
+        },
+        {
+            "total": 1,
+            "result": 1
+        },
+        {
+            "total": 1,
+            "result": 1
+        },
+        {
+            "total": 2,
+            "result": 2
+        },
+        {
+            "total": 7,
+            "result": 6
+        }
+    ],
+    "final_score": {
+        "total": 12,
+        "result": 11
+    }
+}

@@ -1,0 +1,27 @@
+# TheAgentCompany Benchmark Evaluation Scenario
+# ================================================
+# This scenario runs the TheAgentCompany benchmark evaluation
+# using pre-computed results from experiment logs.
+
+[agents]
+# Green agent: Results aggregator and reporter
+green_agent = "green_agent/agent_card.toml"
+
+# No white agents needed - results are pre-computed
+# The 13 personas (Sarah Johnson, Li Ming, etc.) are represented in the logs,
+# but we don't need to instantiate them as live agents.
+
+[environment]
+# Path to the experiments folder containing results and trajectories
+experiments_path = "../../experiments/evaluation/1.0.0/20250510_OpenHands-0.28.1-gemini-2.5-pro"
+
+[config]
+# Battle configuration
+battle_name = "TheAgentCompany Benchmark Evaluation"
+description = "Evaluation of pre-computed benchmark results from TheAgentCompany"
+timeout = 300  # 5 minutes should be plenty for loading and reporting
+
+# Metadata
+benchmark_version = "1.0.0"
+model_tested = "OpenHands-0.28.1 with gemini-2.5-pro"
+evaluation_date = "2025-05-10"
