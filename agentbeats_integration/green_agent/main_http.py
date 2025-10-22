@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 # Configuration from environment
-BACKEND_URL = os.getenv("AGENTBEATS_BACKEND_URL", "https://agentbeats.org")
+BACKEND_URL = os.getenv("AGENTBEATS_BACKEND_URL", "http://nuggets.puppy9.com:9000")
 EXPERIMENTS_PATH = os.getenv("EXPERIMENTS_PATH", "../../experiments/evaluation/1.0.0/20250510_OpenHands-0.28.1-gemini-2.5-pro")
 AGENT_HOST = os.getenv("AGENT_HOST", "0.0.0.0")
 AGENT_PORT = int(os.getenv("AGENT_PORT", "8080"))
@@ -108,16 +108,6 @@ class TheAgentCompanyGreenAgent:
     def setup_routes(self):
         """Setup FastAPI routes for A2A message handling"""
         
-        @self.app.get("/")
-        async def root():
-            """Root endpoint - required for AgentBeats validation"""
-            return {
-                "status": "healthy",
-                "agent": "TheAgentCompany Green Agent",
-                "version": "1.0.0",
-                "is_green": True
-            }
-        
         @self.app.post("/a2a")
         async def receive_a2a_message(request: Request):
             """Receive A2A messages from AgentBeats backend"""
@@ -137,52 +127,6 @@ class TheAgentCompanyGreenAgent:
         async def health_check():
             """Health check endpoint"""
             return {"status": "healthy", "agent": "TheAgentCompany Green Agent"}
-        
-        @self.app.get("/card")
-        async def get_agent_card():
-            """Return agent card information"""
-            return {
-                "alias": "TheAgentCompany Benchmark Reporter",
-                "is_green": True,
-                "description": "Aggregates and reports pre-computed TheAgentCompany benchmark results (175 tasks across 6 categories)",
-                "participant_requirements": [],
-                "battle_timeout": 600,
-                "capabilities": [
-                    "Load 175 pre-computed task evaluations",
-                    "Aggregate results by category (SDE, PM, DS, Admin, HR, Finance)",
-                    "Generate detailed markdown reports",
-                    "Report 30.29% overall pass rate"
-                ],
-                "version": "1.0.0"
-            }
-        
-        @self.app.get("/.well-known/agent-card.json")
-        async def get_agent_card_wellknown():
-            """Return agent card in .well-known format (AgentBeats standard)"""
-            return {
-                "alias": "TheAgentCompany Benchmark Reporter",
-                "is_green": True,
-                "description": "Aggregates and reports pre-computed TheAgentCompany benchmark results (175 tasks across 6 categories)",
-                "participant_requirements": [],
-                "battle_timeout": 600,
-                "capabilities": [
-                    "Load 175 pre-computed task evaluations",
-                    "Aggregate results by category (SDE, PM, DS, Admin, HR, Finance)",
-                    "Generate detailed markdown reports",
-                    "Report 30.29% overall pass rate"
-                ],
-                "version": "1.0.0"
-            }
-        
-        @self.app.get("/status")
-        async def get_status():
-            """Return agent status"""
-            return {
-                "status": "online",
-                "agent": "TheAgentCompany Green Agent",
-                "ready": True,
-                "version": "1.0.0"
-            }
     
     async def register_agent(self, agent_url: str, launcher_url: str) -> str:
         """
@@ -209,7 +153,7 @@ class TheAgentCompanyGreenAgent:
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{BACKEND_URL}/api/agents",
+                f"{BACKEND_URL}/agents",
                 json=payload,
                 timeout=30.0
             )
@@ -375,7 +319,7 @@ class TheAgentCompanyGreenAgent:
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{BACKEND_URL}/api/battles/{battle_id}",
+                f"{BACKEND_URL}/battles/{battle_id}",
                 json=result_payload,
                 timeout=30.0
             )
