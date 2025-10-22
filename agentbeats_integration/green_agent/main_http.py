@@ -24,7 +24,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 
 logging.basicConfig(level=logging.INFO)
@@ -98,6 +99,16 @@ class TheAgentCompanyGreenAgent:
         
         # FastAPI app for receiving A2A messages
         self.app = FastAPI(title="TheAgentCompany Green Agent")
+        
+        # Add CORS middleware
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # Allow all origins for AgentBeats
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
         self.setup_routes()
         
         if not self.results_dir.exists():
@@ -108,25 +119,146 @@ class TheAgentCompanyGreenAgent:
     def setup_routes(self):
         """Setup FastAPI routes for A2A message handling"""
         
+        @self.app.get("/")
+        async def root():
+            """Root endpoint - required for AgentBeats validation"""
+            return {
+                "status": "healthy",
+                "agent": "TheAgentCompany Green Agent",
+                "version": "1.0.0",
+                "is_green": True
+            }
+        
         @self.app.post("/a2a")
         async def receive_a2a_message(request: Request):
             """Receive A2A messages from AgentBeats backend"""
-            message = await request.json()
-            logger.info(f"Received A2A message: {message}")
-            
-            # Handle battle start signal
-            if message.get("type") == "battle_start" or message.get("event_type") == "battle_start":
-                battle_id = message.get("battle_id")
-                if battle_id:
-                    await self.handle_battle_start(battle_id)
-                    return {"status": "ok", "message": "Battle started"}
-            
-            return {"status": "ok"}
+            try:
+                message = await request.json()
+                logger.info(f"Received A2A message: {message}")
+                
+                # Handle battle start signal
+                if message.get("type") == "battle_start" or message.get("event_type") == "battle_start":
+                    battle_id = message.get("battle_id")
+                    if battle_id:
+                        logger.info(f"Battle started: {battle_id}")
+                        # For green agents, we acknowledge but don't need to do anything
+                        # The agent just serves pre-computed results via A2A protocol
+                        return {"status": "ok", "message": "Battle acknowledged"}
+                
+                # Acknowledge any other messages
+                return {"status": "ok", "message": "Message received"}
+            except Exception as e:
+                logger.error(f"Error handling A2A message: {e}")
+                return {"status": "error", "message": str(e)}
+        
+        @self.app.post("/reset")
+        async def launcher_reset(request: Request):
+            """Launcher reset endpoint - receives reset signal from agentbeats.org"""
+            try:
+                message = await request.json()
+                logger.info(f"Received reset signal: {message}")
+                
+                # For green agents, reset doesn't need to do much since we just report pre-computed results
+                # But we acknowledge the reset for protocol compliance
+                
+                return {
+                    "status": "ok",
+                    "message": "Agent reset complete (green agent - no state to clear)",
+                    "ready": True
+                }
+            except Exception as e:
+                logger.error(f"Error handling reset: {e}")
+                return {"status": "error", "message": str(e)}
         
         @self.app.get("/health")
         async def health_check():
             """Health check endpoint"""
             return {"status": "healthy", "agent": "TheAgentCompany Green Agent"}
+        
+        @self.app.get("/status")
+        async def get_status():
+            """Return agent status"""
+            return {
+                "status": "online",
+                "agent": "TheAgentCompany Green Agent",
+                "ready": True,
+                "version": "1.0.0"
+            }
+        
+        @self.app.get("/.well-known/agent-card.json")
+        async def get_agent_card(request: Request):
+            """Agent card endpoint for discovery"""
+            logger.info(f"GET /.well-known/agent-card.json - Headers: {dict(request.headers)}")
+            logger.info(f"GET /.well-known/agent-card.json - Client: {request.client}")
+            
+            # Return agent card with ALL required fields that AgentBeats expects
+            card = {
+                "agent_url": "https://ruby-nondoctrinaire-cohen.ngrok-free.dev",
+                "launcher_url": "https://ruby-nondoctrinaire-cohen.ngrok-free.dev",
+                "alias": "TheAgentCompany Green Agent",
+                "is_green": True,
+                "participant_requirements": []
+            }
+            
+            logger.info(f"Returning agent card: {card}")
+            return card
+
+        @self.app.options("/.well-known/agent-card.json")
+        async def options_agent_card(request: Request):
+            """Respond to preflight CORS/validator OPTIONS checks"""
+            headers = {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": "600",
+            }
+            return Response(status_code=200, headers=headers)
+
+        @self.app.head("/.well-known/agent-card.json")
+        async def head_agent_card(request: Request):
+            """Respond to HEAD checks from validators"""
+            headers = {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": "true",
+            }
+            return Response(status_code=200, headers=headers)
+        
+        @self.app.get("/card")
+        async def get_card(request: Request):
+            """Alternative agent card endpoint (some platforms check /card)"""
+            logger.info(f"GET /card - Headers: {dict(request.headers)}")
+            logger.info(f"GET /card - Client: {request.client}")
+            
+            # Return agent card with ALL required fields that AgentBeats expects
+            return {
+                "agent_url": "https://ruby-nondoctrinaire-cohen.ngrok-free.dev",
+                "launcher_url": "https://ruby-nondoctrinaire-cohen.ngrok-free.dev",
+                "alias": "TheAgentCompany Green Agent",
+                "is_green": True,
+                "participant_requirements": []
+            }
+
+        @self.app.options("/card")
+        async def options_card(request: Request):
+            headers = {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": "600",
+            }
+            return Response(status_code=200, headers=headers)
+
+        @self.app.head("/card")
+        async def head_card(request: Request):
+            headers = {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": "true",
+            }
+            return Response(status_code=200, headers=headers)
     
     async def register_agent(self, agent_url: str, launcher_url: str) -> str:
         """
